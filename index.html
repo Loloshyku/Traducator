@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+
+  <!-- PWA / iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Traducător" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0d0e12" />
+
+  <!-- iOS Icons -->
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <link rel="apple-touch-icon" sizes="57x57"   href="icons/icon-57.png" />
+  <link rel="apple-touch-icon" sizes="60x60"   href="icons/icon-60.png" />
+  <link rel="apple-touch-icon" sizes="72x72"   href="icons/icon-72.png" />
+  <link rel="apple-touch-icon" sizes="76x76"   href="icons/icon-76.png" />
+  <link rel="apple-touch-icon" sizes="114x114" href="icons/icon-114.png" />
+  <link rel="apple-touch-icon" sizes="120x120" href="icons/icon-120.png" />
+  <link rel="apple-touch-icon" sizes="144x144" href="icons/icon-144.png" />
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png" />
+  <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png" />
+
+  <link rel="manifest" href="manifest.json" />
+  <title>Traducător Claude</title>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --bg:      #0d0e12;
+      --bg2:     #13141a;
+      --bg3:     #1a1820;
+      --border:  #2a2830;
+      --border2: #1e1c25;
+      --gold:    #c9a96e;
+      --gold-d:  #7a6040;
+      --text:    #e8e0d5;
+      --text2:   #ddd5c8;
+      --muted:   #5a5465;
+      --muted2:  #4a4558;
+      --muted3:  #3a3548;
+      --muted4:  #2a2830;
+      --green:   #2a3828;
+      --green2:  #111814;
+      --green-t: #4a6848;
+      --green-ok:#7ab87a;
+      --red-bg:  #1a0e0e;
+      --red-b:   #4a1e1e;
+      --red-t:   #c07070;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bot: env(safe-area-inset-bottom, 0px);
+    }
+
+    html { height: 100%; background: var(--bg); }
+    body {
+      height: 100%; min-height: 100vh;
+      background: var(--bg); color: var(--text);
+      font-family: Georgia, 'Times New Roman', serif;
+      overflow-x: hidden;
+      padding-top: var(--safe-top);
+      padding-bottom: var(--safe-bot);
+    }
+
+    /* ── HEADER ── */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: #13141ae8;
+      backdrop-filter: saturate(180%) blur(12px);
+      -webkit-backdrop-filter: saturate(180%) blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px 12px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .h-left { display: flex; flex-direction: column; gap: 2px; }
+    .h-title { font-size: 17px; font-weight: 400; letter-spacing: 0.1em; color: var(--gold); text-transform: uppercase; }
+    .h-sub   { font-size: 9px; letter-spacing: 0.22em; color: var(--muted4); text-transform: uppercase; font-family: monospace; }
+    #btn-clear {
+      background: none; border: 1px solid var(--border); color: var(--muted);
+      padding: 6px 14px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      font-family: monospace; border-radius: 0; -webkit-appearance: none; cursor: pointer;
+    }
+    #btn-clear:active { border-color: var(--gold); color: var(--gold); }
+
+    /* ── MAIN SCROLL ── */
+    main { padding: 20px 16px 32px; display: flex; flex-direction: column; gap: 18px; }
+
+    /* ── SECTION LABEL ── */
+    .lbl {
+      font-size: 9px; letter-spacing: 0.3em; color: var(--muted2);
+      text-transform: uppercase; margin-bottom: 8px; font-family: monospace;
+    }
+
+    /* ── STYLE PILLS ── */
+    #style-scroll {
+      display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    #style-scroll::-webkit-scrollbar { display: none; }
+    .style-btn {
+      flex-shrink: 0;
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      padding: 8px 15px; font-size: 13px; font-family: Georgia, serif;
+      display: flex; align-items: center; gap: 5px;
+      -webkit-appearance: none; cursor: pointer; transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .style-btn.active { background: #1e1a2e; border-color: var(--gold); color: var(--gold); }
+    .style-btn:active  { opacity: 0.7; }
+    #style-desc { font-size: 11px; color: var(--muted2); font-style: italic; margin-top: 8px; min-height: 15px; }
+
+    /* ── LANGUAGE ROW ── */
+    #lang-row { display: flex; align-items: center; gap: 8px; }
+    .lang-wrap { flex: 1; position: relative; }
+    .lang-wrap select {
+      width: 100%; background: var(--bg2); border: 1px solid var(--border);
+      color: var(--text); padding: 10px 28px 10px 10px; font-size: 13px;
+      font-family: Georgia, serif; outline: none; -webkit-appearance: none;
+      border-radius: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='5'%3E%3Cpath d='M0 0l4.5 5 4.5-5z' fill='%235a5465'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 10px center;
+    }
+    #btn-swap {
+      flex-shrink: 0;
+      background: none; border: 1px solid var(--border); color: var(--gold);
+      width: 38px; height: 38px; font-size: 17px; display: flex;
+      align-items: center; justify-content: center; cursor: pointer;
+      -webkit-appearance: none;
+    }
+    #btn-swap:active { background: #1e1a2e; }
+    #btn-swap:disabled { color: var(--muted4); }
+
+    /* ── TEXT PANELS ── */
+    .panel {
+      border: 1px solid var(--border); background: var(--bg2);
+    }
+    textarea {
+      width: 100%; min-height: 160px; max-height: 260px;
+      background: transparent; border: none; color: var(--text);
+      padding: 14px; font-size: 15px; line-height: 1.7;
+      font-family: Georgia, serif; outline: none; resize: vertical;
+      -webkit-appearance: none; border-radius: 0;
+    }
+    textarea::placeholder { color: var(--muted4); }
+    .panel-foot {
+      padding: 8px 14px; border-top: 1px solid var(--border2);
+      display: flex; justify-content: space-between;
+      font-size: 10px; color: var(--muted3); font-family: monospace; letter-spacing: 0.08em;
+    }
+
+    /* ── OUTPUT PANEL ── */
+    #panel-out { border-color: var(--border); background: #0f1011; min-height: 120px; display: flex; flex-direction: column; }
+    #panel-out.has-text { border-color: var(--green); background: var(--green2); }
+    #out-placeholder { padding: 28px 14px; color: var(--muted4); font-size: 13px; font-style: italic; text-align: center; }
+    #out-text { padding: 14px; font-size: 15px; line-height: 1.7; font-family: Georgia, serif; color: var(--text2); white-space: pre-wrap; display: none; }
+    #out-foot { padding: 8px 14px; border-top: 1px solid #1e2a1e; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #3a5038; font-family: monospace; display: none; }
+    #btn-copy { background: none; border: none; color: var(--green-t); font-size: 12px; font-family: monospace; letter-spacing: 0.15em; padding: 4px 2px; cursor: pointer; }
+    #btn-copy.ok { color: var(--green-ok); }
+
+    /* ── SPINNER ── */
+    #spinner { display: none; padding: 36px; flex-direction: column; align-items: center; gap: 12px; }
+    .spin-ring {
+      width: 28px; height: 28px; border: 1px solid var(--border);
+      border-top-color: var(--gold); border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin-lbl { font-size: 10px; color: var(--muted2); letter-spacing: 0.2em; font-family: monospace; }
+
+    /* ── ERROR ── */
+    #error-box {
+      display: none; border: 1px solid var(--red-b); background: var(--red-bg);
+      padding: 12px 14px; font-size: 13px; color: var(--red-t); font-style: italic;
+    }
+
+    /* ── TRANSLATE BUTTON ── */
+    #btn-translate {
+      width: 100%; padding: 16px; background: #1e1a2e; border: 1px solid var(--gold);
+      color: var(--gold); font-size: 12px; letter-spacing: 0.3em; text-transform: uppercase;
+      font-family: monospace; cursor: pointer; -webkit-appearance: none;
+      transition: all 0.2s;
+    }
+    #btn-translate:active { background: #2a2440; }
+    #btn-translate:disabled {
+      background: var(--bg3); border-color: var(--border); color: var(--muted3);
+    }
+
+    /* ── API KEY SCREEN ── */
+    #key-screen {
+      position: fixed; inset: 0; z-index: 999;
+      background: var(--bg);
+      padding: calc(var(--safe-top) + 40px) 28px calc(var(--safe-bot) + 28px);
+      display: flex; flex-direction: column; justify-content: center; gap: 0;
+    }
+    #key-screen h1 { font-size: 22px; font-weight: 400; color: var(--gold); letter-spacing: 0.1em; margin-bottom: 10px; }
+    #key-screen p  { font-size: 14px; color: var(--muted); line-height: 1.65; margin-bottom: 24px; font-style: italic; }
+    #key-input {
+      width: 100%; background: var(--bg2); border: 1px solid var(--border);
+      color: var(--text); padding: 13px 14px; font-size: 14px; font-family: monospace;
+      outline: none; -webkit-appearance: none; border-radius: 0; letter-spacing: 0.04em;
+      margin-bottom: 8px;
+    }
+    #key-hint { font-size: 11px; color: var(--muted2); margin-bottom: 20px; font-style: italic; }
+    #btn-save-key {
+      width: 100%; padding: 15px; background: #1e1a2e; border: 1px solid var(--gold);
+      color: var(--gold); font-size: 12px; letter-spacing: 0.25em; text-transform: uppercase;
+      font-family: monospace; cursor: pointer; -webkit-appearance: none;
+    }
+    #btn-save-key:active { background: #2a2440; }
+    #key-err { font-size: 12px; color: var(--red-t); margin-top: 10px; min-height: 16px; }
+    #key-change { margin-top: 16px; font-size: 11px; color: var(--muted2); text-align: center; font-style: italic; }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 14px 16px calc(var(--safe-bot) + 14px);
+      border-top: 1px solid var(--bg3);
+      display: flex; justify-content: space-between;
+      font-size: 9px; color: var(--muted4); font-family: monospace; letter-spacing: 0.12em;
+    }
+    #key-indicator { color: var(--muted4); }
+    #key-indicator.ok { color: #3a5038; }
+    #btn-rekey { background: none; border: none; color: var(--muted4); font-size: 9px; font-family: monospace; letter-spacing: 0.12em; cursor: pointer; padding: 0; }
+  </style>
+</head>
+<body>
+
+<!-- ── API KEY SCREEN ── -->
+<div id="key-screen">
+  <h1>Cheie API</h1>
+  <p>Aplicația folosește Claude AI (Anthropic). Introdu cheia ta API — se salvează local pe dispozitiv, nu este transmisă nicăieri.</p>
+  <input id="key-input" type="password" placeholder="sk-ant-api03-..." autocomplete="off" autocorrect="off" spellcheck="false" />
+  <div id="key-hint">Obții cheia de la <strong style="color:#c9a96e80">console.anthropic.com</strong> → API Keys</div>
+  <button id="btn-save-key">Salvează și continuă</button>
+  <div id="key-err"></div>
+  <div id="key-change"></div>
+</div>
+
+<!-- ── APP ── -->
+<header>
+  <div class="h-left">
+    <span class="h-title">Traducător</span>
+    <span class="h-sub">powered by Claude</span>
+  </div>
+  <button id="btn-clear">Șterge tot</button>
+</header>
+
+<main>
+
+  <!-- STYLE -->
+  <div>
+    <div class="lbl">Stil traducere</div>
+    <div id="style-scroll">
+      <button class="style-btn active" data-id="standard"     data-desc="Traducere fidelă și clară"><span>◈</span>Standard</button>
+      <button class="style-btn"        data-id="literary"      data-desc="Ton elevat, expresii literare"><span>✦</span>Literar</button>
+      <button class="style-btn"        data-id="formal"        data-desc="Registru oficial, juridic"><span>◉</span>Formal</button>
+      <button class="style-btn"        data-id="informal"      data-desc="Limbaj colocvial, natural"><span>◎</span>Informal</button>
+      <button class="style-btn"        data-id="journalistic"  data-desc="Stil de presă, concis"><span>◆</span>Jurnalistic</button>
+      <button class="style-btn"        data-id="technical"     data-desc="Terminologie de specialitate"><span>◇</span>Tehnic</button>
+    </div>
+    <div id="style-desc">Traducere fidelă și clară</div>
+  </div>
+
+  <!-- LANGS -->
+  <div>
+    <div id="lang-row">
+      <div class="lang-wrap">
+        <select id="src-lang">
+          <option value="auto">Detectează automat</option>
+          <option value="ro">Română</option>
+          <option value="en">Engleză</option>
+          <option value="fr">Franceză</option>
+          <option value="de">Germană</option>
+          <option value="es">Spaniolă</option>
+          <option value="it">Italiană</option>
+          <option value="ru">Rusă</option>
+          <option value="pt">Portugheză</option>
+          <option value="nl">Olandeză</option>
+          <option value="pl">Poloneză</option>
+          <option value="hu">Maghiară</option>
+          <option value="cs">Cehă</option>
+          <option value="uk">Ucraineană</option>
+          <option value="bg">Bulgară</option>
+          <option value="el">Greacă</option>
+          <option value="tr">Turcă</option>
+          <option value="ar">Arabă</option>
+          <option value="zh">Chineză</option>
+          <option value="ja">Japoneză</option>
+          <option value="ko">Coreeană</option>
+          <option value="la">Latină</option>
+        </select>
+      </div>
+      <button id="btn-swap">⇄</button>
+      <div class="lang-wrap">
+        <select id="tgt-lang">
+          <option value="ro" selected>Română</option>
+          <option value="en">Engleză</option>
+          <option value="fr">Franceză</option>
+          <option value="de">Germană</option>
+          <option value="es">Spaniolă</option>
+          <option value="it">Italiană</option>
+          <option value="ru">Rusă</option>
+          <option value="pt">Portugheză</option>
+          <option value="nl">Olandeză</option>
+          <option value="pl">Poloneză</option>
+          <option value="hu">Maghiară</option>
+          <option value="cs">Cehă</option>
+          <option value="uk">Ucraineană</option>
+          <option value="bg">Bulgară</option>
+          <option value="el">Greacă</option>
+          <option value="tr">Turcă</option>
+          <option value="ar">Arabă</option>
+          <option value="zh">Chineză</option>
+          <option value="ja">Japoneză</option>
+          <option value="ko">Coreeană</option>
+          <option value="la">Latină</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- SOURCE -->
+  <div>
+    <div class="lbl">Text sursă</div>
+    <div class="panel">
+      <textarea id="src-txt" placeholder="Introdu textul de tradus..."></textarea>
+      <div class="panel-foot">
+        <span id="stat-c">0 caractere</span>
+        <span id="stat-w">0 cuvinte</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div id="error-box"></div>
+
+  <!-- TRANSLATE BTN -->
+  <button id="btn-translate" disabled>Traduce</button>
+
+  <!-- OUTPUT -->
+  <div>
+    <div class="lbl">Traducere</div>
+    <div class="panel" id="panel-out">
+      <div id="out-placeholder">traducerea va apărea aici</div>
+      <div id="spinner"><div class="spin-ring"></div><span class="spin-lbl">SE TRADUCE...</span></div>
+      <div id="out-text"></div>
+      <div id="out-foot">
+        <span id="elapsed"></span>
+        <button id="btn-copy">COPIAZĂ</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <span>claude-sonnet-4 · 22 limbi</span>
+  <span id="key-indicator">—</span>
+  <button id="btn-rekey">schimbă cheia</button>
+</footer>
+
+<script>
+(function(){
+  const STYLES = {
+    standard:     'Traducere fidelă, exactă și fluentă, registru neutru.',
+    literary:     'Traducere literară de înaltă calitate. Păstrează ritmul, tonul și stilul original. Privilegiază expresivitatea față de traducerea mot-à-mot.',
+    formal:       'Traducere în registru formal, oficial, adecvat documentelor juridice, administrative, academice. Evită orice expresie colocvială.',
+    informal:     'Traducere în limbaj natural, colocvial, cu expresii familiare, ca o conversație.',
+    journalistic: 'Traducere în stil jurnalistic: propoziții clare, concise, fără redundanță.',
+    technical:    'Traducere tehnică riguroasă. Termenii de specialitate sunt păstrați cu exactitate.',
+  };
+  const LANGS = {
+    auto:'detectează singur limba sursă',ro:'Română',en:'Engleză',fr:'Franceză',de:'Germană',
+    es:'Spaniolă',it:'Italiană',ru:'Rusă',pt:'Portugheză',nl:'Olandeză',pl:'Poloneză',
+    hu:'Maghiară',cs:'Cehă',uk:'Ucraineană',bg:'Bulgară',el:'Greacă',tr:'Turcă',
+    ar:'Arabă',zh:'Chineză',ja:'Japoneză',ko:'Coreeană',la:'Latină'
+  };
+
+  let apiKey = localStorage.getItem('claude_api_key') || '';
+  let style  = 'standard';
+  let busy   = false;
+
+  // Elements
+  const keyScreen  = document.getElementById('key-screen');
+  const keyInput   = document.getElementById('key-input');
+  const btnSaveKey = document.getElementById('btn-save-key');
+  const keyErr     = document.getElementById('key-err');
+  const keyChange  = document.getElementById('key-change');
+  const btnClear   = document.getElementById('btn-clear');
+  const styleScroll= document.getElementById('style-scroll');
+  const styleDesc  = document.getElementById('style-desc');
+  const srcLang    = document.getElementById('src-lang');
+  const tgtLang    = document.getElementById('tgt-lang');
+  const btnSwap    = document.getElementById('btn-swap');
+  const srcTxt     = document.getElementById('src-txt');
+  const statC      = document.getElementById('stat-c');
+  const statW      = document.getElementById('stat-w');
+  const errorBox   = document.getElementById('error-box');
+  const btnTrans   = document.getElementById('btn-translate');
+  const panelOut   = document.getElementById('panel-out');
+  const placeholder= document.getElementById('out-placeholder');
+  const spinner    = document.getElementById('spinner');
+  const outText    = document.getElementById('out-text');
+  const outFoot    = document.getElementById('out-foot');
+  const elapsed    = document.getElementById('elapsed');
+  const btnCopy    = document.getElementById('btn-copy');
+  const keyInd     = document.getElementById('key-indicator');
+  const btnRekey   = document.getElementById('btn-rekey');
+
+  // ── INIT ──
+  if (apiKey) {
+    keyScreen.style.display = 'none';
+    keyInd.textContent = 'cheie ✓'; keyInd.className = 'ok';
+  } else {
+    keyChange.textContent = '';
+  }
+
+  // ── API KEY ──
+  btnSaveKey.addEventListener('click', saveKey);
+  keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') saveKey(); });
+  function saveKey() {
+    const v = keyInput.value.trim();
+    if (!v.startsWith('sk-ant-')) {
+      keyErr.textContent = 'Cheia trebuie să înceapă cu "sk-ant-"'; return;
+    }
+    apiKey = v;
+    localStorage.setItem('claude_api_key', v);
+    keyScreen.style.display = 'none';
+    keyInd.textContent = 'cheie ✓'; keyInd.className = 'ok';
+  }
+  btnRekey.addEventListener('click', () => {
+    keyInput.value = '';
+    keyErr.textContent = '';
+    keyChange.textContent = 'Introduce noua cheie mai jos.';
+    keyScreen.style.display = 'flex';
+    setTimeout(() => keyInput.focus(), 100);
+  });
+
+  // ── STYLES ──
+  styleScroll.addEventListener('click', e => {
+    const b = e.target.closest('.style-btn');
+    if (!b) return;
+    document.querySelectorAll('.style-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    style = b.dataset.id;
+    styleDesc.textContent = b.dataset.desc;
+  });
+
+  // ── SOURCE ──
+  srcTxt.addEventListener('input', () => {
+    const v = srcTxt.value;
+    statC.textContent = v.length + ' caractere';
+    statW.textContent = (v.trim() ? v.trim().split(/\s+/).length : 0) + ' cuvinte';
+    btnTrans.disabled = !v.trim() || busy;
+    clearError();
+  });
+
+  // ── SWAP ──
+  srcLang.addEventListener('change', () => { btnSwap.disabled = srcLang.value === 'auto'; });
+  btnSwap.addEventListener('click', () => {
+    if (srcLang.value === 'auto') return;
+    const tmp = srcLang.value;
+    srcLang.value = tgtLang.value;
+    tgtLang.value = tmp;
+    const tmpTxt = srcTxt.value;
+    srcTxt.value = outText.textContent;
+    outText.textContent = tmpTxt;
+    srcTxt.dispatchEvent(new Event('input'));
+    if (outText.textContent) showResult(outText.textContent);
+  });
+
+  // ── CLEAR ──
+  btnClear.addEventListener('click', () => {
+    srcTxt.value = ''; srcTxt.dispatchEvent(new Event('input'));
+    resetOut(); clearError();
+  });
+
+  // ── COPY ──
+  btnCopy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(outText.textContent);
+      btnCopy.textContent = '✓ COPIAT'; btnCopy.classList.add('ok');
+      setTimeout(() => { btnCopy.textContent = 'COPIAZĂ'; btnCopy.classList.remove('ok'); }, 2000);
+    } catch(e) {
+      // Fallback for older iOS
+      const sel = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(outText);
+      sel.removeAllRanges(); sel.addRange(range);
+      document.execCommand('copy');
+      sel.removeAllRanges();
+      btnCopy.textContent = '✓ COPIAT'; btnCopy.classList.add('ok');
+      setTimeout(() => { btnCopy.textContent = 'COPIAZĂ'; btnCopy.classList.remove('ok'); }, 2000);
+    }
+  });
+
+  // ── TRANSLATE ──
+  btnTrans.addEventListener('click', doTranslate);
+
+  async function doTranslate() {
+    if (!srcTxt.value.trim() || busy) return;
+    if (!apiKey) { keyScreen.style.display = 'flex'; return; }
+    if (srcLang.value !== 'auto' && srcLang.value === tgtLang.value) {
+      showError('Limbile sursă și țintă sunt identice.'); return;
+    }
+    busy = true;
+    clearError(); showSpinner();
+    btnTrans.disabled = true;
+    btnTrans.textContent = '— se traduce —';
+
+    const t0 = Date.now();
+    const srcL = srcLang.value === 'auto' ? 'detectează singur limba sursă' : (LANGS[srcLang.value] || srcLang.value);
+    const tgtL = LANGS[tgtLang.value] || tgtLang.value;
+
+    const sys = `Ești un traducător profesionist de elită.
+Limba sursă: ${srcL}
+Limba țintă: ${tgtL}
+Stil: ${STYLES[style]}
+
+REGULI: Returnează EXCLUSIV traducerea. Fără introduceri, explicații sau comentarii. Păstrează structura paragrafelor. Nu traduce numele proprii fără formă consacrată. Dacă textul e deja în limba-țintă, returnează-l neschimbat.`;
+
+    try {
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-calls': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 4096,
+          system: sys,
+          messages: [{ role: 'user', content: srcTxt.value }],
+        }),
+      });
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        if (r.status === 401) throw new Error('Cheie API invalidă.');
+        throw new Error(e?.error?.message || 'Eroare ' + r.status);
+      }
+      const data = await r.json();
+      const result = (data.content?.find(b => b.type === 'text')?.text || '').trim();
+      showResult(result, ((Date.now()-t0)/1000).toFixed(1));
+    } catch(err) {
+      showError('Eroare: ' + err.message);
+      resetOut();
+    } finally {
+      busy = false;
+      btnTrans.disabled = !srcTxt.value.trim();
+      btnTrans.textContent = 'Traduce';
+    }
+  }
+
+  function showSpinner() {
+    placeholder.style.display='none';
+    outText.style.display='none';
+    outFoot.style.display='none';
+    spinner.style.display='flex';
+    panelOut.classList.remove('has-text');
+  }
+  function showResult(txt, time) {
+    spinner.style.display='none';
+    placeholder.style.display='none';
+    outText.textContent = txt;
+    outText.style.display='block';
+    outFoot.style.display='flex';
+    if (time) elapsed.textContent = time+'s';
+    btnCopy.textContent = 'COPIAZĂ';
+    panelOut.classList.add('has-text');
+  }
+  function resetOut() {
+    spinner.style.display='none';
+    outText.style.display='none';
+    outText.textContent='';
+    outFoot.style.display='none';
+    placeholder.style.display='block';
+    panelOut.classList.remove('has-text');
+  }
+  function showError(m) { errorBox.textContent=m; errorBox.style.display='block'; }
+  function clearError()  { errorBox.textContent=''; errorBox.style.display='none'; }
+
+  // ── SERVICE WORKER ──
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>
